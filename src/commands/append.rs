@@ -1,17 +1,14 @@
 use std::collections::HashMap;
 
-use crate::native_types::redis_type::RedisType;
-use crate::native_types::integer::RInteger;
 use crate::native_types::error::ErrorStruct;
+use crate::native_types::integer::RInteger;
+use crate::native_types::redis_type::RedisType;
 
 pub struct Database {
-
     strings: HashMap<String, String>,
-
 }
 
 impl Database {
-
     pub fn new() -> Database {
         Database {
             strings: HashMap::new(),
@@ -19,11 +16,8 @@ impl Database {
     }
 
     pub fn get_mut_strings(&mut self) -> Option<&mut HashMap<String, String>> {
-
         Some(&mut self.strings)
-
     }
-
 }
 
 impl Default for Database {
@@ -31,16 +25,12 @@ impl Default for Database {
         Self::new()
     }
 }
-    
 
 pub struct Append;
 
 impl Append {
-
     pub fn run(mut buffer_vec: Vec<&str>, database: &mut Database) -> Result<String, ErrorStruct> {
-
         if let Some(strings) = database.get_mut_strings() {
-
             let new_value = String::from(buffer_vec.pop().unwrap());
             let key = String::from(buffer_vec.pop().unwrap());
 
@@ -55,25 +45,22 @@ impl Append {
             }
 
             Ok(RInteger::encode(size as isize))
-
         } else {
-
-            Err(ErrorStruct::new("DATABASE".to_string(), "¿y ahora que?".to_string()))
-
+            Err(ErrorStruct::new(
+                "DATABASE".to_string(),
+                "¿y ahora que?".to_string(),
+            ))
         }
-
     }
-
 }
 
 #[cfg(test)]
-pub mod test_append{
+pub mod test_append {
 
     use super::*;
 
     #[test]
-    fn test01_append_to_an_existing_key(){
-
+    fn test01_append_to_an_existing_key() {
         let mut data = Database::new();
 
         {
@@ -86,19 +73,22 @@ pub mod test_append{
         let encoded = Append::run(buffer, &mut data);
 
         assert_eq!(encoded.unwrap(), ":13\r\n".to_string());
-        assert_eq!(data.get_mut_strings().unwrap().get("key"), Some(&"valueAppended".to_string()));
-
+        assert_eq!(
+            data.get_mut_strings().unwrap().get("key"),
+            Some(&"valueAppended".to_string())
+        );
     }
 
     #[test]
-    fn test02_append_to_a_non_existing_key(){
-
+    fn test02_append_to_a_non_existing_key() {
         let mut data = Database::new();
         let buffer: Vec<&str> = vec!["key", "newValue"];
         let encoded = Append::run(buffer, &mut data);
 
         assert_eq!(encoded.unwrap(), ":8\r\n".to_string());
-        assert_eq!(data.get_mut_strings().unwrap().get("key"), Some(&"newValue".to_string()));
+        assert_eq!(
+            data.get_mut_strings().unwrap().get("key"),
+            Some(&"newValue".to_string())
+        );
     }
-
 }
