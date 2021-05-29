@@ -78,7 +78,5 @@ pub mod redis_messages {
                 command, args_received
             ),
         }
-  
     }
-
 }

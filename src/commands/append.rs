@@ -7,7 +7,10 @@ use crate::commands::database_mock::{DatabaseMock, TypeSaved};
 pub struct Append;
 
 impl Append {
-    pub fn run(mut buffer_vec: Vec<&str>, database: &mut DatabaseMock) -> Result<String, ErrorStruct> {
+    pub fn run(
+        mut buffer_vec: Vec<&str>,
+        database: &mut DatabaseMock,
+    ) -> Result<String, ErrorStruct> {
         /*if let Some(strings) = database.get_mut_strings() {
             let new_value = String::from(buffer_vec.pop().unwrap());
             let key = String::from(buffer_vec.pop().unwrap());
@@ -34,31 +37,23 @@ impl Append {
         let key = String::from(buffer_vec.pop().unwrap());
         let size: usize;
         if let Some(typesaved) = database.get_mut(&key) {
-
-            match typesaved{
-
+            match typesaved {
                 TypeSaved::String(old_value) => {
                     old_value.push_str(&new_value);
                     size = old_value.len();
                     Ok(RInteger::encode(size as isize))
-
                 }
 
                 _ => Err(ErrorStruct::new(
                     String::from("ERR"),
                     String::from("key provided is not from strings"),
-                ))
-
+                )),
             }
-
         } else {
             size = new_value.len();
             database.insert(key, TypeSaved::String(new_value));
             Ok(RInteger::encode(size as isize))
         }
-
-        
-
     }
 }
 
