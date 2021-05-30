@@ -9,6 +9,13 @@ pub struct LPop;
 
 impl LPop {
     pub fn run(mut buffer: Vec<&str>, database: &mut DatabaseMock) -> Result<String, ErrorStruct> {
+        if buffer.is_empty() {
+            return Err(ErrorStruct::new(
+                String::from("ERR"),
+                String::from("wrong number of arguments for 'lindex' command"),
+            ));
+        }
+
         let key = String::from(buffer.remove(0));
         let count = parse_count(buffer)?;
 
@@ -124,5 +131,18 @@ pub mod test_lpush {
         let encode = LPop::run(buffer, &mut data);
         assert_eq!(encode.unwrap(), "$-1\r\n".to_string());
         assert_eq!(data.get("key"), None);
+    }
+
+    #[test]
+    fn test04_lpop_with_no_key() {
+        let mut data = DatabaseMock::new();
+        let buffer = vec![];
+        match LPop::run(buffer, &mut data) {
+            Ok(_encode) => {}
+            Err(error) => assert_eq!(
+                error.print_it(),
+                "ERR wrong number of arguments for 'lindex' command".to_string()
+            ),
+        }
     }
 }
