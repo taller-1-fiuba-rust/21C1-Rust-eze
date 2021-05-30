@@ -45,7 +45,7 @@ fn parse_count(mut buffer: Vec<&str>) -> Result<usize, ErrorStruct> {
             ))
         }
     } else {
-        Ok(0)
+        Ok(1)
     }
 }
 
@@ -65,8 +65,8 @@ pub mod test_lpush {
 
     use super::*;
 
-    /*#[test]
-    fn test01_lpop_values_on_an_existing_list() {
+    #[test]
+    fn test01_lpop_one_value_from_an_existing_list() {
         let mut data = DatabaseMock::new();
         let new_list: Vec<String> = vec![
             "this".to_string(),
@@ -76,47 +76,53 @@ pub mod test_lpush {
         ];
         data.insert("key".to_string(), TypeSaved::List(new_list));
 
-        let buffer = vec!["key", "values", "new", "with"];
-        let encode = LPush::run(buffer, &mut data);
-        assert_eq!(encode.unwrap(), ":7\r\n".to_string());
-        let fifth: &String;
-        let sixth: &String;
-        let seventh: &String;
+        let buffer = vec!["key"];
+        let encode = LPop::run(buffer, &mut data);
+        assert_eq!(encode.unwrap(), "$4\r\nthis\r\n".to_string());
         match data.get("key").unwrap() {
             TypeSaved::List(list) => {
-                fifth = &list[4];
-                sixth = &list[5];
-                seventh = &list[6];
-                assert_eq!(fifth, "with");
-                assert_eq!(sixth, "new");
-                assert_eq!(seventh, "values");
+                let mut list_iter = list.iter();
+                assert_eq!(list_iter.next(), Some(&"is".to_string()));
+                assert_eq!(list_iter.next(), Some(&"a".to_string()));
+                assert_eq!(list_iter.next(), Some(&"list".to_string()));
+                assert_eq!(list_iter.next(), None);
             }
             _ => {}
         }
     }
 
     #[test]
-    fn test02_lpush_values_on_a_non_existing_list() {
+    fn test02_lpop_many_values_from_an_existing_list() {
         let mut data = DatabaseMock::new();
-        let buffer: Vec<&str> = vec!["key", "this", "is", "a", "list"];
-        let encode = LPush::run(buffer, &mut data);
-        assert_eq!(encode.unwrap(), ":4\r\n".to_string());
-        let first: &String;
-        let second: &String;
-        let third: &String;
-        let fourth: &String;
+        let new_list: Vec<String> = vec![
+            "this".to_string(),
+            "is".to_string(),
+            "a".to_string(),
+            "list".to_string(),
+        ];
+        data.insert("key".to_string(), TypeSaved::List(new_list));
+        let buffer = vec!["key", "3"];
+        let encode = LPop::run(buffer, &mut data);
+        assert_eq!(
+            encode.unwrap(),
+            "*3\r\n$4\r\nthis\r\n$2\r\nis\r\n$1\r\na\r\n".to_string()
+        );
         match data.get("key").unwrap() {
             TypeSaved::List(list) => {
-                first = &list[0];
-                second = &list[1];
-                third = &list[2];
-                fourth = &list[3];
-                assert_eq!(first, "list");
-                assert_eq!(second, "a");
-                assert_eq!(third, "is");
-                assert_eq!(fourth, "this");
+                let mut list_iter = list.iter();
+                assert_eq!(list_iter.next(), Some(&"list".to_string()));
+                assert_eq!(list_iter.next(), None);
             }
             _ => {}
         }
-    }*/
+    }
+
+    #[test]
+    fn test03_lpop_value_from_a_non_existing_list() {
+        let mut data = DatabaseMock::new();
+        let buffer = vec!["key"];
+        let encode = LPop::run(buffer, &mut data);
+        assert_eq!(encode.unwrap(), "$-1\r\n".to_string());
+        assert_eq!(data.get("key"), None);
+    }
 }
