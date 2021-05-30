@@ -1,40 +1,62 @@
+use crate::native_types::array::RArray;
+use crate::native_types::bulk_string::RBulkString;
 use crate::native_types::error::ErrorStruct;
-use crate::native_types::integer::RInteger;
 use crate::native_types::redis_type::RedisType;
 
 use crate::commands::database_mock::{DatabaseMock, TypeSaved};
 
-pub struct LPush;
+pub struct LPop;
 
-impl LPush {
+impl LPop {
     pub fn run(mut buffer: Vec<&str>, database: &mut DatabaseMock) -> Result<String, ErrorStruct> {
         let key = String::from(buffer.remove(0));
-        let size;
+        let count = parse_count(buffer)?;
+
+        let popped: Vec<String> = Vec::new();
         if let Some(typesaved) = database.get_mut(&key) {
             match typesaved {
-                TypeSaved::List(list_of_values) => {
-                    fill_list(buffer, list_of_values);
-                    size = list_of_values.len();
-                    Ok(RInteger::encode(size as isize))
-                }
+                TypeSaved::List(list_of_values) => Ok(fill_list(popped, list_of_values, count)),
                 _ => Err(ErrorStruct::new(
                     String::from("ERR"),
                     String::from("key provided is not from strings"),
                 )),
             }
         } else {
-            let mut new_list: Vec<String> = Vec::new();
-            fill_list(buffer, &mut new_list);
-            size = new_list.len();
-            database.insert(key, TypeSaved::List(new_list));
-            Ok(RInteger::encode(size as isize))
+            Ok(RBulkString::encode("(nil)".to_string()))
         }
     }
 }
 
-fn fill_list(mut buffer: Vec<&str>, list: &mut Vec<String>) {
-    while !buffer.is_empty() {
-        list.push(buffer.pop().unwrap().to_string());
+fn parse_count(mut buffer: Vec<&str>) -> Result<usize, ErrorStruct> {
+    if let Some(value) = buffer.pop() {
+        if let Ok(counter) = value.parse::<usize>() {
+            if counter > 0 {
+                Ok(counter)
+            } else {
+                Err(ErrorStruct::new(
+                    String::from("ERRUSIZE"),
+                    String::from("provided counter is not a natural number"),
+                ))
+            }
+        } else {
+            Err(ErrorStruct::new(
+                String::from("ERRUSIZE"),
+                String::from("provided counter is not a natural number"),
+            ))
+        }
+    } else {
+        Ok(0)
+    }
+}
+
+fn fill_list(mut popped: Vec<String>, list: &mut Vec<String>, counter: usize) -> String {
+    if counter > 1 {
+        for _ in 0..counter {
+            popped.push(list.remove(0));
+        }
+        RArray::encode(popped)
+    } else {
+        RBulkString::encode(list.remove(0))
     }
 }
 
@@ -43,8 +65,8 @@ pub mod test_lpush {
 
     use super::*;
 
-    #[test]
-    fn test01_lpush_values_on_an_existing_list() {
+    /*#[test]
+    fn test01_lpop_values_on_an_existing_list() {
         let mut data = DatabaseMock::new();
         let new_list: Vec<String> = vec![
             "this".to_string(),
@@ -96,5 +118,5 @@ pub mod test_lpush {
             }
             _ => {}
         }
-    }
+    }*/
 }

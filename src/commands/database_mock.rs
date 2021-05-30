@@ -29,6 +29,10 @@ impl DatabaseMock {
     pub fn get_mut(&mut self, key: &str) -> Option<&mut TypeSaved> {
         self.elements.get_mut(key)
     }
+
+    pub fn remove(&mut self, key: &str) -> Option<TypeSaved> {
+        self.elements.remove(key)
+    }
 }
 
 impl Default for DatabaseMock {
