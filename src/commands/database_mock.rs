@@ -1,9 +1,11 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 
+
 use crate::native_types::{
     array::RArray, bulk_string::RBulkString, error::ErrorStruct, integer::RInteger,
     redis_type::RedisType,
 };
+
 
 pub struct DatabaseMock {
     elements: HashMap<String, TypeSaved>,
@@ -89,7 +91,20 @@ pub fn get_as_integer(value: &str) -> Result<isize, ErrorStruct> {
     }
 }
 
-// Lpush and rpush aux
+
+// Lpush, rpush, lpushx and rpushx aux
+
+pub fn fill_list_from_top(mut buffer: Vec<&str>, list: &mut LinkedList<String>) {
+    while !buffer.is_empty() {
+        list.push_front(buffer.remove(0).to_string());
+    }
+}
+
+pub fn fill_list_from_bottom(mut buffer: Vec<&str>, list: &mut LinkedList<String>) {
+    while !buffer.is_empty() {
+        list.push_back(buffer.remove(0).to_string());
+    }
+}
 
 pub fn push_at(
     mut buffer: Vec<&str>,
@@ -119,17 +134,6 @@ pub fn push_at(
     }
 }
 
-pub fn fill_list_from_top(mut buffer: Vec<&str>, list: &mut LinkedList<String>) {
-    while !buffer.is_empty() {
-        list.push_front(buffer.remove(0).to_string());
-    }
-}
-
-pub fn fill_list_from_bottom(mut buffer: Vec<&str>, list: &mut LinkedList<String>) {
-    while !buffer.is_empty() {
-        list.push_back(buffer.remove(0).to_string());
-    }
-}
 
 pub fn pop_at(
     mut buffer: Vec<&str>,
@@ -162,6 +166,36 @@ pub fn pop_at(
     }
 }
 
+
+// Lpushx and rpushx aux
+
+pub fn pushx_at(
+    mut buffer: Vec<&str>,
+    database: &mut DatabaseMock,
+    fill_list: fn(buffer: Vec<&str>, list: &mut LinkedList<String>),
+) -> Result<String, ErrorStruct> {
+    let key = String::from(buffer.remove(0));
+    let size;
+    if let Some(typesaved) = database.get_mut(&key) {
+        match typesaved {
+            TypeSaved::List(list_of_values) => {
+                fill_list(buffer, list_of_values);
+                size = list_of_values.len();
+                Ok(RInteger::encode(size as isize))
+            }
+            _ => Err(ErrorStruct::new(
+                String::from("ERR"),
+                String::from("key provided is not from strings"),
+            )),
+        }
+    } else {
+        Err(ErrorStruct::new(
+            String::from("ERR"),
+            String::from("no list found with entered key"),
+        ))
+    }
+}
+   
 fn no_more_values(buffer: &[&str]) -> Result<(), ErrorStruct> {
     if buffer.is_empty() {
         Ok(())
