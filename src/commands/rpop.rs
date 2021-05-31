@@ -1,16 +1,16 @@
-use super::database_mock::{pop_at, remove_values_from_top};
+use super::database_mock::{pop_at, remove_values_from_bottom};
 use crate::commands::database_mock::DatabaseMock;
 use crate::native_types::error::ErrorStruct;
-pub struct LPop;
+pub struct RPop;
 
-impl LPop {
+impl RPop {
     pub fn run(buffer: Vec<&str>, database: &mut DatabaseMock) -> Result<String, ErrorStruct> {
-        pop_at(buffer, database, remove_values_from_top)
+        pop_at(buffer, database, remove_values_from_bottom)
     }
 }
 
 #[cfg(test)]
-pub mod test_lop {
+pub mod test_rpop {
 
     use super::*;
     use crate::commands::database_mock::TypeSaved;
@@ -26,14 +26,14 @@ pub mod test_lop {
         data.insert("key".to_string(), TypeSaved::List(new_list));
 
         let buffer = vec!["key"];
-        let encode = LPop::run(buffer, &mut data);
-        assert_eq!(encode.unwrap(), "$4\r\nthis\r\n".to_string());
+        let encode = RPop::run(buffer, &mut data);
+        assert_eq!(encode.unwrap(), "$4\r\nlist\r\n".to_string());
         match data.get("key").unwrap() {
             TypeSaved::List(list) => {
                 let mut list_iter = list.iter();
+                assert_eq!(list_iter.next(), Some(&"this".to_string()));
                 assert_eq!(list_iter.next(), Some(&"is".to_string()));
                 assert_eq!(list_iter.next(), Some(&"a".to_string()));
-                assert_eq!(list_iter.next(), Some(&"list".to_string()));
                 assert_eq!(list_iter.next(), None);
             }
             _ => {}
@@ -50,15 +50,15 @@ pub mod test_lop {
         new_list.push_back("list".to_string());
         data.insert("key".to_string(), TypeSaved::List(new_list));
         let buffer = vec!["key", "3"];
-        let encode = LPop::run(buffer, &mut data);
+        let encode = RPop::run(buffer, &mut data);
         assert_eq!(
             encode.unwrap(),
-            "*3\r\n$4\r\nthis\r\n$2\r\nis\r\n$1\r\na\r\n".to_string()
+            "*3\r\n$4\r\nlist\r\n$1\r\na\r\n$2\r\nis\r\n".to_string()
         );
         match data.get("key").unwrap() {
             TypeSaved::List(list) => {
                 let mut list_iter = list.iter();
-                assert_eq!(list_iter.next(), Some(&"list".to_string()));
+                assert_eq!(list_iter.next(), Some(&"this".to_string()));
                 assert_eq!(list_iter.next(), None);
             }
             _ => {}
@@ -69,7 +69,7 @@ pub mod test_lop {
     fn test03_lpop_value_from_a_non_existing_list() {
         let mut data = DatabaseMock::new();
         let buffer = vec!["key"];
-        let encode = LPop::run(buffer, &mut data);
+        let encode = RPop::run(buffer, &mut data);
         assert_eq!(encode.unwrap(), "$-1\r\n".to_string());
         assert_eq!(data.get("key"), None);
     }
@@ -78,7 +78,7 @@ pub mod test_lop {
     fn test04_lpop_with_no_key() {
         let mut data = DatabaseMock::new();
         let buffer = vec![];
-        match LPop::run(buffer, &mut data) {
+        match RPop::run(buffer, &mut data) {
             Ok(_encode) => {}
             Err(error) => assert_eq!(
                 error.print_it(),
